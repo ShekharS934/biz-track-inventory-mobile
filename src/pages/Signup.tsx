@@ -38,7 +38,17 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      const success = await signup(formData);
+      // Type assertion here since we've already checked that businessType and role are not empty
+      const userData = {
+        name: formData.name,
+        email: formData.email,
+        businessName: formData.businessName,
+        businessType: formData.businessType as 'medical' | 'ice_cream',
+        role: formData.role as 'admin' | 'vendor',
+        password: formData.password
+      };
+      
+      const success = await signup(userData);
       if (success) {
         toast({
           title: "Account created!",
