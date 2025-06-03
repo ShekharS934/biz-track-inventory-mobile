@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Package, Mail, Lock, User, Building } from 'lucide-react';
+import { createDemoUser } from '@/contexts/demo-data';
 
 const UsernameAuth = () => {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -21,9 +21,19 @@ const UsernameAuth = () => {
     role: '' as 'owner' | 'vendor' | ''
   });
   const [loading, setLoading] = useState(false);
+  const [demoUserReady, setDemoUserReady] = useState(false);
   const { login, signup } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Create demo user when component mounts
+    const setupDemoUser = async () => {
+      const success = await createDemoUser();
+      setDemoUserReady(success);
+    };
+    setupDemoUser();
+  }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +121,37 @@ const UsernameAuth = () => {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setEmail('admin@inventorypro.com');
+    setPassword('admin123');
+    setLoading(true);
+    
+    try {
+      const success = await login('admin@inventorypro.com', 'admin123');
+      if (success) {
+        toast({
+          title: "Welcome to the demo!",
+          description: "You are now logged in as Demo Admin.",
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: "Demo login failed",
+          description: "Please try the manual login with the demo credentials",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Demo login failed",
+        description: "Please try the manual login with the demo credentials",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md animate-fade-in">
@@ -176,6 +217,17 @@ const UsernameAuth = () => {
                 >
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
+
+                {demoUserReady && (
+                  <Button
+                    type="button"
+                    onClick={handleDemoLogin}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    disabled={loading}
+                  >
+                    {loading ? "Logging in..." : "Try Demo Account"}
+                  </Button>
+                )}
 
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-600 mb-2">Demo credentials:</p>
