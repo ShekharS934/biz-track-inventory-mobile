@@ -124,8 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Signing up user:', userData);
       
-      // First sign up with phone
-      const { error } = await supabase.auth.signUp({
+      // For phone auth, we use signInWithOtp and store user data in metadata
+      const { error } = await supabase.auth.signInWithOtp({
         phone: userData.phone,
         options: {
           data: {
