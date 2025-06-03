@@ -10,7 +10,8 @@ import {
   FileText, 
   LogOut,
   Menu,
-  X
+  X,
+  Users
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -27,7 +28,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Inventory', href: '/inventory', icon: Package },
     { name: 'Sales', href: '/sales', icon: TrendingUp },
-    ...(user?.role === 'admin' ? [{ name: 'Reports', href: '/reports', icon: FileText }] : []),
+    ...(user?.role === 'owner' ? [
+      { name: 'Reports', href: '/reports', icon: FileText },
+      ...(user?.businessType === 'ice_cream' ? [{ name: 'Vendors', href: '/vendors', icon: Users }] : [])
+    ] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;

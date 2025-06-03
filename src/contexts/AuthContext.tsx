@@ -1,11 +1,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 export interface User {
   id: string;
-  email: string;
+  phone: string;
   name: string;
-  role: 'admin' | 'vendor';
+  role: 'owner' | 'vendor';
   businessType: 'medical' | 'ice_cream';
   businessName: string;
 }
@@ -13,70 +15,161 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (userData: Omit<User, 'id'> & { password: string }) => Promise<boolean>;
-  logout: () => void;
+  session: Session | null;
+  login: (phone: string, otp: string) => Promise<boolean>;
+  signup: (userData: Omit<User, 'id'> & { phone: string }) => Promise<boolean>;
+  sendOtp: (phone: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user data on app start
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      setUser(userData);
-      setIsAuthenticated(true);
-    }
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session);
+        setSession(session);
+        
+        if (session?.user) {
+          // Fetch user profile data
+          setTimeout(async () => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+              if (profile) {
+                const userData: User = {
+                  id: profile.id,
+                  phone: profile.phone || '',
+                  name: profile.name,
+                  role: profile.role,
+                  businessType: profile.business_type,
+                  businessName: profile.business_name,
+                };
+                setUser(userData);
+                setIsAuthenticated(true);
+              }
+            } catch (error) {
+              console.error('Error fetching profile:', error);
+            } finally {
+              setLoading(false);
+            }
+          }, 0);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      // The onAuthStateChange will handle this
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    console.log('Login attempt:', { email, password });
-    
-    // Mock user data - in real app, this would come from your backend
-    const mockUser: User = {
-      id: '1',
-      email,
-      name: email.split('@')[0],
-      role: email.includes('admin') ? 'admin' : 'vendor',
-      businessType: email.includes('medical') ? 'medical' : 'ice_cream',
-      businessName: email.includes('medical') ? 'MediCare Pharmacy' : 'Sweet Dreams Ice Cream'
-    };
+  const sendOtp = async (phone: string): Promise<boolean> => {
+    try {
+      console.log('Sending OTP to:', phone);
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: phone,
+      });
 
-    setUser(mockUser);
-    setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(mockUser));
-    return true;
+      if (error) {
+        console.error('OTP send error:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      return false;
+    }
   };
 
-  const signup = async (userData: Omit<User, 'id'> & { password: string }): Promise<boolean> => {
-    // Simulate API call
-    console.log('Signup attempt:', userData);
-    
-    const newUser: User = {
-      ...userData,
-      id: Date.now().toString(),
-    };
+  const login = async (phone: string, otp: string): Promise<boolean> => {
+    try {
+      console.log('Verifying OTP for:', phone);
+      const { error } = await supabase.auth.verifyOtp({
+        phone: phone,
+        token: otp,
+        type: 'sms'
+      });
 
-    setUser(newUser);
-    setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    return true;
+      if (error) {
+        console.error('Login error:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('user');
+  const signup = async (userData: Omit<User, 'id'> & { phone: string }): Promise<boolean> => {
+    try {
+      console.log('Signing up user:', userData);
+      
+      // First sign up with phone
+      const { error } = await supabase.auth.signUp({
+        phone: userData.phone,
+        options: {
+          data: {
+            name: userData.name,
+            business_type: userData.businessType,
+            business_name: userData.businessName,
+            role: userData.role
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Signup error:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Signup error:', error);
+      return false;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, signup, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      session, 
+      login, 
+      signup, 
+      sendOtp, 
+      logout, 
+      loading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

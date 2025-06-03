@@ -9,16 +9,262 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      inventory_items: {
+        Row: {
+          business_id: string | null
+          category: string
+          cost_price: number
+          created_at: string | null
+          expiry_date: string | null
+          id: string
+          low_stock_threshold: number | null
+          name: string
+          quantity: number
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          category: string
+          cost_price: number
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          low_stock_threshold?: number | null
+          name: string
+          quantity?: number
+          unit_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          category?: string
+          cost_price?: number
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          low_stock_threshold?: number | null
+          name?: string
+          quantity?: number
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_reports: {
+        Row: {
+          ai_insights: string | null
+          business_id: string | null
+          created_at: string | null
+          id: string
+          net_profit: number
+          report_month: string
+          total_profit: number
+          total_sales: number
+          total_vendor_commission: number
+        }
+        Insert: {
+          ai_insights?: string | null
+          business_id?: string | null
+          created_at?: string | null
+          id?: string
+          net_profit: number
+          report_month: string
+          total_profit: number
+          total_sales: number
+          total_vendor_commission: number
+        }
+        Update: {
+          ai_insights?: string | null
+          business_id?: string | null
+          created_at?: string | null
+          id?: string
+          net_profit?: number
+          report_month?: string
+          total_profit?: number
+          total_sales?: number
+          total_vendor_commission?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_reports_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          business_name: string
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at: string | null
+          id: string
+          name: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          business_name: string
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at?: string | null
+          id: string
+          name: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          business_name?: string
+          business_type?: Database["public"]["Enums"]["business_type"]
+          created_at?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sales_transactions: {
+        Row: {
+          business_id: string | null
+          cost_amount: number
+          created_at: string | null
+          id: string
+          item_id: string | null
+          net_profit: number
+          profit_amount: number
+          quantity: number
+          sale_date: string | null
+          total_amount: number
+          unit_price: number
+          vendor_commission: number | null
+          vendor_id: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          cost_amount: number
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          net_profit: number
+          profit_amount: number
+          quantity: number
+          sale_date?: string | null
+          total_amount: number
+          unit_price: number
+          vendor_commission?: number | null
+          vendor_id?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          cost_amount?: number
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          net_profit?: number
+          profit_amount?: number
+          quantity?: number
+          sale_date?: string | null
+          total_amount?: number
+          unit_price?: number
+          vendor_commission?: number | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_transactions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_transactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_transactions_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          commission_rate: number
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          owner_id: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          commission_rate: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          owner_id?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          commission_rate?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          owner_id?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendors_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_vendor_commission: {
+        Args: {
+          vendor_user_id: string
+          owner_user_id: string
+          sale_amount: number
+        }
+        Returns: number
+      }
     }
     Enums: {
-      [_ in never]: never
+      business_type: "medical" | "ice_cream"
+      user_role: "owner" | "vendor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +379,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      business_type: ["medical", "ice_cream"],
+      user_role: ["owner", "vendor"],
+    },
   },
 } as const
