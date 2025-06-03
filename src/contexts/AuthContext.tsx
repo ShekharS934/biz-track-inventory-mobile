@@ -5,7 +5,7 @@ import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 export interface User {
   id: string;
-  phone: string;
+  email: string;
   name: string;
   role: 'owner' | 'vendor';
   businessType: 'medical' | 'ice_cream';
@@ -16,9 +16,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   session: Session | null;
-  login: (phone: string, otp: string) => Promise<boolean>;
-  signup: (userData: Omit<User, 'id'> & { phone: string }) => Promise<boolean>;
-  sendOtp: (phone: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (userData: Omit<User, 'id'> & { password: string }) => Promise<boolean>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -51,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (profile) {
                 const userData: User = {
                   id: profile.id,
-                  phone: profile.phone || '',
+                  email: profile.email || session.user.email || '',
                   name: profile.name,
                   role: profile.role,
                   businessType: profile.business_type,
@@ -82,31 +81,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const sendOtp = async (phone: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      console.log('Sending OTP to:', phone);
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: phone,
-      });
-
-      if (error) {
-        console.error('OTP send error:', error);
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error('Send OTP error:', error);
-      return false;
-    }
-  };
-
-  const login = async (phone: string, otp: string): Promise<boolean> => {
-    try {
-      console.log('Verifying OTP for:', phone);
-      const { error } = await supabase.auth.verifyOtp({
-        phone: phone,
-        token: otp,
-        type: 'sms'
+      console.log('Logging in user:', email);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
       if (error) {
@@ -120,13 +100,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (userData: Omit<User, 'id'> & { phone: string }): Promise<boolean> => {
+  const signup = async (userData: Omit<User, 'id'> & { password: string }): Promise<boolean> => {
     try {
       console.log('Signing up user:', userData);
       
-      // For phone auth, we use signInWithOtp and store user data in metadata
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: userData.phone,
+      const { error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
         options: {
           data: {
             name: userData.name,
@@ -166,7 +146,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session, 
       login, 
       signup, 
-      sendOtp, 
       logout, 
       loading 
     }}>

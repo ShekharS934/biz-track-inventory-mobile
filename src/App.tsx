@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import PhoneAuth from "./pages/PhoneAuth";
+import UsernameAuth from "./pages/UsernameAuth";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Sales from "./pages/Sales";
@@ -33,7 +33,7 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/auth" element={!isAuthenticated ? <PhoneAuth /> : <Navigate to="/dashboard" replace />} />
+      <Route path="/auth" element={!isAuthenticated ? <UsernameAuth /> : <Navigate to="/dashboard" replace />} />
       <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/auth"} replace />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
