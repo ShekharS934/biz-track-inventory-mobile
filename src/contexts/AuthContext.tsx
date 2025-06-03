@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (profile) {
                 const userData: User = {
                   id: profile.id,
-                  email: profile.email || session.user.email || '',
+                  email: session.user.email || '',
                   name: profile.name,
                   role: profile.role,
                   businessType: profile.business_type,
