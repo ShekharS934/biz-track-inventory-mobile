@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -93,7 +93,6 @@ const PhoneAuth = () => {
           });
         }
       } else {
-        // For signup, verify OTP first then create profile
         const success = await login(phone, otp);
         if (success) {
           toast({
@@ -277,7 +276,9 @@ const PhoneAuth = () => {
                       {loading ? "Creating account..." : "Create Account & Send OTP"}
                     </Button>
                   </form>
-                ) : (
+                )}
+                
+                {mode === 'signin' && (
                   <form onSubmit={handleSendOtp} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone Number</Label>
