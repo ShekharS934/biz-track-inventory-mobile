@@ -11,6 +11,7 @@ import Inventory from "./pages/Inventory";
 import Sales from "./pages/Sales";
 import Reports from "./pages/Reports";
 import Vendors from "./pages/Vendors";
+import WorkerDashboard from "./pages/WorkerDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const AppRoutes = () => {
       <Route path="/auth" element={<UsernameAuth />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/worker" element={<WorkerDashboard />} />
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/sales" element={<Sales />} />
       <Route path="/reports" element={<Reports />} />
