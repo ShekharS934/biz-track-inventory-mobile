@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
   LayoutDashboard, 
@@ -20,21 +19,31 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Mock user data for demo purposes
+  const mockUser = {
+    name: 'Demo User',
+    role: 'owner' as const,
+    businessType: 'medical' as const,
+    businessName: 'Demo Business'
+  };
 
   const navigationItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Inventory', href: '/inventory', icon: Package },
     { name: 'Sales', href: '/sales', icon: TrendingUp },
-    ...(user?.role === 'owner' ? [
-      { name: 'Reports', href: '/reports', icon: FileText },
-      ...(user?.businessType === 'ice_cream' ? [{ name: 'Vendors', href: '/vendors', icon: Users }] : [])
-    ] : []),
+    { name: 'Reports', href: '/reports', icon: FileText },
+    { name: 'Vendors', href: '/vendors', icon: Users },
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleSignOut = () => {
+    // For demo, just redirect to auth page
+    window.location.href = '/auth';
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -64,9 +73,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         <div className="px-4 py-6">
           <div className="mb-6">
-            <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-            <p className="text-xs text-gray-500 capitalize">{user?.role} • {user?.businessType?.replace('_', ' ')}</p>
-            <p className="text-xs text-gray-500">{user?.businessName}</p>
+            <p className="text-sm font-medium text-gray-900">{mockUser.name}</p>
+            <p className="text-xs text-gray-500 capitalize">{mockUser.role} • {mockUser.businessType?.replace('_', ' ')}</p>
+            <p className="text-xs text-gray-500">{mockUser.businessName}</p>
           </div>
 
           <nav className="space-y-1">
@@ -92,7 +101,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Button
             variant="outline"
             className="w-full"
-            onClick={logout}
+            onClick={handleSignOut}
           >
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
