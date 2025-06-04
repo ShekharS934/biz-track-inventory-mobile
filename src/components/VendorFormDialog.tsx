@@ -16,10 +16,18 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
+import { InventoryItem } from '@/pages/Inventory';
 
 interface VendorFormData {
   name: string;
@@ -52,13 +60,97 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
     },
   });
 
-  const [productInput, setProductInput] = React.useState('');
+  const [selectedProduct, setSelectedProduct] = React.useState('');
   const products = form.watch('products') || [];
 
+  // Mock inventory data for ice cream business
+  const inventoryItems: InventoryItem[] = [
+    {
+      id: '1',
+      name: 'Vanilla Cornetto',
+      category: 'Cornetto',
+      stock: 45,
+      price: 3.50,
+      cost: 2.00,
+      lowStockThreshold: 20,
+      description: 'Creamy vanilla ice cream cone'
+    },
+    {
+      id: '2',
+      name: 'Chocolate Bar',
+      category: 'Bar',
+      stock: 12,
+      price: 4.00,
+      cost: 2.50,
+      lowStockThreshold: 25,
+      description: 'Rich chocolate ice cream bar'
+    },
+    {
+      id: '3',
+      name: 'Strawberry Cup',
+      category: 'Cup',
+      stock: 28,
+      price: 3.00,
+      cost: 1.80,
+      lowStockThreshold: 15,
+      description: 'Fresh strawberry ice cream cup'
+    },
+    {
+      id: '4',
+      name: 'Mango Kulfi',
+      category: 'Kulfi',
+      stock: 8,
+      price: 2.50,
+      cost: 1.50,
+      lowStockThreshold: 20,
+      description: 'Traditional mango kulfi'
+    },
+    {
+      id: '5',
+      name: 'Chocolate Cornetto',
+      category: 'Cornetto',
+      stock: 32,
+      price: 3.50,
+      cost: 2.00,
+      lowStockThreshold: 20,
+      description: 'Rich chocolate ice cream cone'
+    },
+    {
+      id: '6',
+      name: 'Vanilla Bar',
+      category: 'Bar',
+      stock: 18,
+      price: 4.00,
+      cost: 2.50,
+      lowStockThreshold: 25,
+      description: 'Creamy vanilla ice cream bar'
+    },
+    {
+      id: '7',
+      name: 'Mint Chocolate Cup',
+      category: 'Cup',
+      stock: 22,
+      price: 3.25,
+      cost: 1.90,
+      lowStockThreshold: 15,
+      description: 'Refreshing mint chocolate ice cream'
+    },
+    {
+      id: '8',
+      name: 'Pistachio Kulfi',
+      category: 'Kulfi',
+      stock: 15,
+      price: 2.75,
+      cost: 1.60,
+      lowStockThreshold: 20,
+      description: 'Rich pistachio kulfi'
+    }
+  ];
+
   const addProduct = () => {
-    if (productInput.trim() && !products.includes(productInput.trim())) {
-      form.setValue('products', [...products, productInput.trim()]);
-      setProductInput('');
+    if (selectedProduct && !products.includes(selectedProduct)) {
+      form.setValue('products', [...products, selectedProduct]);
+      setSelectedProduct('');
     }
   };
 
@@ -176,13 +268,27 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
             <div className="space-y-2">
               <label className="text-sm font-medium">Ice Cream Products</label>
               <div className="flex gap-2">
-                <Input
-                  placeholder="e.g., Vanilla Cones"
-                  value={productInput}
-                  onChange={(e) => setProductInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addProduct())}
-                />
-                <Button type="button" onClick={addProduct}>Add</Button>
+                <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select from inventory..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {inventoryItems
+                      .filter(item => !products.includes(item.name))
+                      .map((item) => (
+                        <SelectItem key={item.id} value={item.name}>
+                          {item.name} - {item.category}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Button 
+                  type="button" 
+                  onClick={addProduct}
+                  disabled={!selectedProduct}
+                >
+                  Add
+                </Button>
               </div>
               <div className="flex flex-wrap gap-1">
                 {products.map((product, index) => (
