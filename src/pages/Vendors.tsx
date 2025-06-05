@@ -14,7 +14,10 @@ import {
   DollarSign,
   TrendingUp,
   Edit,
-  Trash2
+  Trash2,
+  Building2,
+  Calendar,
+  Package
 } from 'lucide-react';
 
 interface Vendor {
@@ -157,93 +160,115 @@ const Vendors = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Ice Cream Vendors</h1>
-            <p className="text-gray-600 mt-1">
+      <div className="space-y-8 p-6 bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+        {/* Enhanced Header */}
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Ice Cream Vendors
+            </h1>
+            <p className="text-gray-600 text-lg">
               Manage your ice cream supply vendors and their commission rates
             </p>
           </div>
-          <Button className="flex items-center gap-2" onClick={openAddDialog}>
-            <Plus className="h-4 w-4" />
+          <Button 
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" 
+            onClick={openAddDialog}
+            size="lg"
+          >
+            <Plus className="h-5 w-5" />
             Add New Vendor
           </Button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
+        {/* Enhanced Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Vendors</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-blue-100">Total Vendors</CardTitle>
+              <Users className="h-5 w-5 text-blue-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{vendors.length}</div>
-              <p className="text-xs text-muted-foreground">{activeVendors} active</p>
+              <div className="text-3xl font-bold">{vendors.length}</div>
+              <p className="text-xs text-blue-200 mt-1">
+                <span className="bg-blue-400/30 px-2 py-1 rounded-full">{activeVendors} active</span>
+              </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Commissions</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-500" />
+              <CardTitle className="text-sm font-medium text-green-100">Monthly Commissions</CardTitle>
+              <DollarSign className="h-5 w-5 text-green-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">${totalCommission.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">this month</p>
+              <div className="text-3xl font-bold">${totalCommission.toFixed(2)}</div>
+              <p className="text-xs text-green-200 mt-1">this month</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Commission Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-500" />
+              <CardTitle className="text-sm font-medium text-purple-100">Avg Commission Rate</CardTitle>
+              <TrendingUp className="h-5 w-5 text-purple-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{avgCommissionRate.toFixed(1)}%</div>
-              <p className="text-xs text-muted-foreground">across all vendors</p>
+              <div className="text-3xl font-bold">{avgCommissionRate.toFixed(1)}%</div>
+              <p className="text-xs text-purple-200 mt-1">across all vendors</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Vendors</CardTitle>
-              <Users className="h-4 w-4 text-purple-500" />
+              <CardTitle className="text-sm font-medium text-orange-100">Active Vendors</CardTitle>
+              <Building2 className="h-5 w-5 text-orange-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{activeVendors}</div>
-              <p className="text-xs text-muted-foreground">currently supplying</p>
+              <div className="text-3xl font-bold">{activeVendors}</div>
+              <p className="text-xs text-orange-200 mt-1">currently supplying</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Vendors List */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Enhanced Vendors List */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {vendors.map((vendor) => (
-            <Card key={vendor.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
+            <Card key={vendor.id} className="border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
                 <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {vendor.name}
-                      <Badge variant={vendor.status === 'active' ? 'default' : 'secondary'}>
-                        {vendor.status}
-                      </Badge>
+                  <div className="space-y-2">
+                    <CardTitle className="flex items-center gap-3 text-xl">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                        {vendor.name.charAt(0)}
+                      </div>
+                      <div>
+                        {vendor.name}
+                        <Badge 
+                          variant={vendor.status === 'active' ? 'default' : 'secondary'} 
+                          className={`ml-2 ${vendor.status === 'active' ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                        >
+                          {vendor.status}
+                        </Badge>
+                      </div>
                     </CardTitle>
-                    <CardDescription className="mt-1">
+                    <CardDescription className="flex items-center gap-2 text-gray-600">
+                      <Calendar className="h-4 w-4" />
                       Member since {new Date(vendor.joinDate).toLocaleDateString()}
                     </CardDescription>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => openEditDialog(vendor)}>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => openEditDialog(vendor)}
+                      className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
                       onClick={() => handleDeleteVendor(vendor.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -251,46 +276,51 @@ const Vendors = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Contact Info */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Mail className="h-4 w-4" />
-                      {vendor.email}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Phone className="h-4 w-4" />
-                      {vendor.phone}
-                    </div>
+              <CardContent className="space-y-6">
+                {/* Contact Info */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50/50 rounded-lg">
+                    <Mail className="h-5 w-5 text-blue-500" />
+                    <span className="text-gray-700">{vendor.email}</span>
                   </div>
-
-                  {/* Financial Info */}
-                  <div className="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-xs text-gray-500">Commission Rate</p>
-                      <p className="font-semibold text-green-600">{vendor.commissionRate}%</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Monthly Commission</p>
-                      <p className="font-semibold">${vendor.monthlyCommission.toFixed(2)}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-xs text-gray-500">Total Sales</p>
-                      <p className="font-semibold">${vendor.totalSales.toLocaleString()}</p>
-                    </div>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50/50 rounded-lg">
+                    <Phone className="h-5 w-5 text-green-500" />
+                    <span className="text-gray-700">{vendor.phone}</span>
                   </div>
+                </div>
 
-                  {/* Ice Cream Products */}
-                  <div>
-                    <p className="text-xs text-gray-500 mb-2">Ice Cream Products Supplied</p>
-                    <div className="flex flex-wrap gap-1">
-                      {vendor.products.map((product, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {product}
-                        </Badge>
-                      ))}
-                    </div>
+                {/* Financial Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+                    <p className="text-xs text-green-600 font-medium mb-1">Commission Rate</p>
+                    <p className="font-bold text-xl text-green-700">{vendor.commissionRate}%</p>
+                  </div>
+                  <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                    <p className="text-xs text-blue-600 font-medium mb-1">Monthly Commission</p>
+                    <p className="font-bold text-xl text-blue-700">${vendor.monthlyCommission.toFixed(2)}</p>
+                  </div>
+                  <div className="col-span-2 p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                    <p className="text-xs text-purple-600 font-medium mb-1">Total Sales</p>
+                    <p className="font-bold text-2xl text-purple-700">${vendor.totalSales.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                {/* Ice Cream Products */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-orange-500" />
+                    <p className="text-sm font-medium text-gray-700">Ice Cream Products Supplied</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {vendor.products.map((product, index) => (
+                      <Badge 
+                        key={index} 
+                        variant="outline" 
+                        className="text-xs bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200 text-orange-700 hover:bg-orange-100 transition-colors"
+                      >
+                        {product}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
               </CardContent>
