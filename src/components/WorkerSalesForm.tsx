@@ -20,21 +20,25 @@ import {
   Package, 
   Calculator,
   Plus,
-  Minus
+  Minus,
+  Sunrise,
+  Sunset
 } from 'lucide-react';
 
-interface SaleItem {
+interface VendorInventoryItem {
   itemId: string;
   itemName: string;
-  quantitySold: number;
   unitPrice: number;
   unitCost: number;
+  quantityTaken: number;
+  quantityReturned: number;
+  quantitySold: number;
 }
 
 interface DailySalesData {
   vendorName: string;
-  totalAmountTaken: number;
-  itemsSold: SaleItem[];
+  date: string;
+  itemsData: VendorInventoryItem[];
   totalRevenue: number;
   totalCost: number;
   grossProfit: number;
@@ -47,10 +51,8 @@ const WorkerSalesForm = () => {
   const { toast } = useToast();
   
   const [selectedVendor, setSelectedVendor] = useState('');
-  const [amountTaken, setAmountTaken] = useState('');
-  const [itemsSold, setItemsSold] = useState<SaleItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState('');
-  const [quantity, setQuantity] = useState('');
+  const [vendorItems, setVendorItems] = useState<VendorInventoryItem[]>([]);
+  const [activeTab, setActiveTab] = useState<'morning' | 'evening'>('morning');
 
   // Mock data - in real app, this would come from database
   const vendors = [
@@ -102,60 +104,52 @@ const WorkerSalesForm = () => {
     }
   ];
 
-  const addItem = () => {
-    const item = inventoryItems.find(i => i.id === selectedItem);
-    const qty = parseInt(quantity);
+  const initializeVendorItems = (vendorId: string) => {
+    if (!vendorId) return;
     
-    if (!item || !qty || qty <= 0) {
-      toast({
-        title: "Invalid Input",
-        description: "Please select an item and enter a valid quantity.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const existingItemIndex = itemsSold.findIndex(i => i.itemId === selectedItem);
+    const items: VendorInventoryItem[] = inventoryItems.map(item => ({
+      itemId: item.id,
+      itemName: item.name,
+      unitPrice: item.price,
+      unitCost: item.cost,
+      quantityTaken: 0,
+      quantityReturned: 0,
+      quantitySold: 0
+    }));
     
-    if (existingItemIndex >= 0) {
-      const updatedItems = [...itemsSold];
-      updatedItems[existingItemIndex].quantitySold += qty;
-      setItemsSold(updatedItems);
-    } else {
-      const newSaleItem: SaleItem = {
-        itemId: item.id,
-        itemName: item.name,
-        quantitySold: qty,
-        unitPrice: item.price,
-        unitCost: item.cost
-      };
-      setItemsSold([...itemsSold, newSaleItem]);
-    }
-    
-    setSelectedItem('');
-    setQuantity('');
+    setVendorItems(items);
   };
 
-  const removeItem = (itemId: string) => {
-    setItemsSold(itemsSold.filter(item => item.itemId !== itemId));
-  };
-
-  const updateQuantity = (itemId: string, change: number) => {
-    setItemsSold(itemsSold.map(item => {
+  const updateQuantityTaken = (itemId: string, quantity: string) => {
+    const qty = parseInt(quantity) || 0;
+    setVendorItems(prev => prev.map(item => {
       if (item.itemId === itemId) {
-        const newQuantity = Math.max(0, item.quantitySold + change);
-        return { ...item, quantitySold: newQuantity };
+        const updated = { ...item, quantityTaken: qty };
+        updated.quantitySold = Math.max(0, updated.quantityTaken - updated.quantityReturned);
+        return updated;
       }
       return item;
-    }).filter(item => item.quantitySold > 0));
+    }));
+  };
+
+  const updateQuantityReturned = (itemId: string, quantity: string) => {
+    const qty = parseInt(quantity) || 0;
+    setVendorItems(prev => prev.map(item => {
+      if (item.itemId === itemId) {
+        const updated = { ...item, quantityReturned: qty };
+        updated.quantitySold = Math.max(0, updated.quantityTaken - updated.quantityReturned);
+        return updated;
+      }
+      return item;
+    }));
   };
 
   // Calculations
-  const totalRevenue = itemsSold.reduce((sum, item) => 
+  const totalRevenue = vendorItems.reduce((sum, item) => 
     sum + (item.quantitySold * item.unitPrice), 0
   );
   
-  const totalCost = itemsSold.reduce((sum, item) => 
+  const totalCost = vendorItems.reduce((sum, item) => 
     sum + (item.quantitySold * item.unitCost), 0
   );
   
@@ -166,10 +160,22 @@ const WorkerSalesForm = () => {
   const netProfit = grossProfit - vendorCommission;
 
   const handleSubmit = () => {
-    if (!selectedVendor || !amountTaken || itemsSold.length === 0) {
+    if (!selectedVendor || vendorItems.length === 0) {
       toast({
         title: "Incomplete Information",
-        description: "Please fill in vendor, amount taken, and add at least one item sold.",
+        description: "Please select a vendor and fill in the quantities.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const hasItemsTaken = vendorItems.some(item => item.quantityTaken > 0);
+    const hasItemsReturned = vendorItems.some(item => item.quantityReturned > 0);
+
+    if (!hasItemsTaken) {
+      toast({
+        title: "No Items Taken",
+        description: "Please record items taken by the vendor in the morning.",
         variant: "destructive"
       });
       return;
@@ -177,8 +183,8 @@ const WorkerSalesForm = () => {
 
     const salesData: DailySalesData = {
       vendorName: vendor?.name || '',
-      totalAmountTaken: parseFloat(amountTaken),
-      itemsSold,
+      date: new Date().toISOString().split('T')[0],
+      itemsData: vendorItems.filter(item => item.quantityTaken > 0),
       totalRevenue,
       totalCost,
       grossProfit,
@@ -186,7 +192,7 @@ const WorkerSalesForm = () => {
       netProfit
     };
 
-    console.log('Sales Data Submitted:', salesData);
+    console.log('Daily Sales Data Submitted:', salesData);
     
     toast({
       title: "Sales Recorded",
@@ -195,27 +201,32 @@ const WorkerSalesForm = () => {
 
     // Reset form
     setSelectedVendor('');
-    setAmountTaken('');
-    setItemsSold([]);
+    setVendorItems([]);
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Record Daily Sales</h2>
-        <p className="text-gray-600 mt-1">Enter vendor sales and items sold for profit calculation</p>
+        <p className="text-gray-600 mt-1">Track vendor inventory and calculate daily profit</p>
       </div>
 
       {/* Vendor Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>Vendor Information</CardTitle>
-          <CardDescription>Select the vendor and enter the amount they took</CardDescription>
+          <CardTitle>Select Vendor</CardTitle>
+          <CardDescription>Choose the vendor to record daily sales for</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div>
             <Label htmlFor="vendor">Vendor</Label>
-            <Select value={selectedVendor} onValueChange={setSelectedVendor}>
+            <Select 
+              value={selectedVendor} 
+              onValueChange={(value) => {
+                setSelectedVendor(value);
+                initializeVendorItems(value);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a vendor..." />
               </SelectTrigger>
@@ -228,103 +239,115 @@ const WorkerSalesForm = () => {
               </SelectContent>
             </Select>
           </div>
-          
-          <div>
-            <Label htmlFor="amount">Amount Taken ($)</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              value={amountTaken}
-              onChange={(e) => setAmountTaken(e.target.value)}
-            />
-          </div>
         </CardContent>
       </Card>
 
-      {/* Items Sold */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Items Sold</CardTitle>
-          <CardDescription>Add the ice cream items that were sold</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Select value={selectedItem} onValueChange={setSelectedItem}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Select item..." />
-              </SelectTrigger>
-              <SelectContent>
-                {inventoryItems.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name} - ${item.price}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              type="number"
-              placeholder="Qty"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className="w-20"
-            />
-            <Button onClick={addItem} disabled={!selectedItem || !quantity}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add
-            </Button>
-          </div>
+      {/* Tab Navigation */}
+      {selectedVendor && (
+        <div className="flex gap-2">
+          <Button
+            variant={activeTab === 'morning' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('morning')}
+            className="flex items-center gap-2"
+          >
+            <Sunrise className="h-4 w-4" />
+            Morning - Items Taken
+          </Button>
+          <Button
+            variant={activeTab === 'evening' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('evening')}
+            className="flex items-center gap-2"
+          >
+            <Sunset className="h-4 w-4" />
+            Evening - Items Returned
+          </Button>
+        </div>
+      )}
 
-          {itemsSold.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-medium">Items Added:</h4>
-              {itemsSold.map((item) => (
+      {/* Morning Tab - Items Taken */}
+      {selectedVendor && activeTab === 'morning' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sunrise className="h-5 w-5 text-orange-500" />
+              Morning - Record Items Taken
+            </CardTitle>
+            <CardDescription>Enter how many ice creams the vendor took to sell today</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {vendorItems.map((item) => (
                 <div key={item.itemId} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
+                  <div className="flex-1">
                     <span className="font-medium">{item.itemName}</span>
                     <span className="text-sm text-gray-500 ml-2">
                       ${item.unitPrice} each
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => updateQuantity(item.itemId, -1)}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="font-medium w-8 text-center">{item.quantitySold}</span>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => updateQuantity(item.itemId, 1)}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => removeItem(item.itemId)}
-                    >
-                      Remove
-                    </Button>
+                    <Label className="text-sm">Quantity Taken:</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={item.quantityTaken || ''}
+                      onChange={(e) => updateQuantityTaken(item.itemId, e.target.value)}
+                      className="w-20"
+                      placeholder="0"
+                    />
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Evening Tab - Items Returned */}
+      {selectedVendor && activeTab === 'evening' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sunset className="h-5 w-5 text-purple-500" />
+              Evening - Record Items Returned
+            </CardTitle>
+            <CardDescription>Enter how many ice creams came back unsold</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {vendorItems.map((item) => (
+                <div key={item.itemId} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1">
+                    <span className="font-medium">{item.itemName}</span>
+                    <div className="text-sm text-gray-500">
+                      Taken: {item.quantityTaken} | Sold: <span className="font-medium text-green-600">{item.quantitySold}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm">Returned:</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max={item.quantityTaken}
+                      value={item.quantityReturned || ''}
+                      onChange={(e) => updateQuantityReturned(item.itemId, e.target.value)}
+                      className="w-20"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Profit Calculation */}
-      {itemsSold.length > 0 && (
+      {selectedVendor && vendorItems.some(item => item.quantitySold > 0) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calculator className="h-5 w-5" />
-              Profit Calculation
+              Daily Profit Calculation
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -345,13 +368,26 @@ const WorkerSalesForm = () => {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span>Vendor Commission:</span>
+                  <span>Vendor Commission ({vendor?.commissionRate}%):</span>
                   <span className="font-medium">${vendorCommission.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-blue-600">
                   <span>Net Profit:</span>
                   <span className="font-bold">${netProfit.toFixed(2)}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Items Summary */}
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="font-medium mb-2">Items Sold Summary:</h4>
+              <div className="space-y-1">
+                {vendorItems.filter(item => item.quantitySold > 0).map(item => (
+                  <div key={item.itemId} className="flex justify-between text-sm">
+                    <span>{item.itemName}:</span>
+                    <span>{item.quantitySold} units (${(item.quantitySold * item.unitPrice).toFixed(2)})</span>
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>
@@ -362,7 +398,7 @@ const WorkerSalesForm = () => {
       <Button 
         onClick={handleSubmit} 
         className="w-full"
-        disabled={!selectedVendor || !amountTaken || itemsSold.length === 0}
+        disabled={!selectedVendor || vendorItems.length === 0}
       >
         Record Daily Sales
       </Button>
