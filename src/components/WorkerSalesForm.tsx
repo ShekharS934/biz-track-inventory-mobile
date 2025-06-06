@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { InventoryItem } from '@/pages/Inventory';
 import { 
@@ -19,7 +20,8 @@ import {
   Sunset,
   Lock,
   CheckCircle,
-  Users
+  Users,
+  UserPlus
 } from 'lucide-react';
 
 interface VendorInventoryItem {
@@ -63,13 +65,16 @@ const WorkerSalesForm = () => {
   const [activeTab, setActiveTab] = useState<'morning' | 'evening'>('morning');
   const [morningStockLocked, setMorningStockLocked] = useState(false);
   const [activeVendorForEvening, setActiveVendorForEvening] = useState<string>('');
+  const [showAddVendorForm, setShowAddVendorForm] = useState(false);
+  const [newVendorName, setNewVendorName] = useState('');
+  const [newVendorCommission, setNewVendorCommission] = useState('');
 
   // Mock data - in real app, this would come from database
-  const vendors = [
+  const [vendors, setVendors] = useState([
     { id: '1', name: 'Sweet Scoops Supply', commissionRate: 8.5 },
     { id: '2', name: 'Frozen Delights Inc', commissionRate: 7.0 },
     { id: '3', name: 'Cone Corner', commissionRate: 6.5 }
-  ];
+  ]);
 
   const inventoryItems: InventoryItem[] = [
     {
@@ -114,10 +119,17 @@ const WorkerSalesForm = () => {
     }
   ];
 
-  const handleVendorSelection = (vendorId: string, checked: boolean) => {
+  const handleVendorSelection = (vendorId: string) => {
     if (morningStockLocked) return;
     
-    if (checked) {
+    if (selectedVendors.includes(vendorId)) {
+      setSelectedVendors(prev => prev.filter(id => id !== vendorId));
+      setVendorItemsData(prev => {
+        const newData = { ...prev };
+        delete newData[vendorId];
+        return newData;
+      });
+    } else {
       setSelectedVendors(prev => [...prev, vendorId]);
       const items: VendorInventoryItem[] = inventoryItems.map(item => ({
         itemId: item.id,
@@ -129,14 +141,45 @@ const WorkerSalesForm = () => {
         quantitySold: 0
       }));
       setVendorItemsData(prev => ({ ...prev, [vendorId]: items }));
-    } else {
-      setSelectedVendors(prev => prev.filter(id => id !== vendorId));
-      setVendorItemsData(prev => {
-        const newData = { ...prev };
-        delete newData[vendorId];
-        return newData;
-      });
     }
+  };
+
+  const handleAddNewVendor = () => {
+    if (!newVendorName.trim() || !newVendorCommission.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter vendor name and commission rate.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const commission = parseFloat(newVendorCommission);
+    if (isNaN(commission) || commission < 0 || commission > 100) {
+      toast({
+        title: "Invalid Commission",
+        description: "Commission rate must be a number between 0 and 100.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newVendorId = Date.now().toString();
+    const newVendor = {
+      id: newVendorId,
+      name: newVendorName.trim(),
+      commissionRate: commission
+    };
+
+    setVendors(prev => [...prev, newVendor]);
+    setNewVendorName('');
+    setNewVendorCommission('');
+    setShowAddVendorForm(false);
+
+    toast({
+      title: "Vendor Added",
+      description: `${newVendor.name} has been added successfully.`
+    });
   };
 
   const updateQuantityTaken = (vendorId: string, itemId: string, quantity: string) => {
@@ -234,9 +277,9 @@ const WorkerSalesForm = () => {
     });
 
     const grossProfit = totalRevenue - totalCost;
-    const netProfit = grossProfit - totalVendorCommission;
+    const totalNetProfit = grossProfit - totalVendorCommission;
 
-    return { totalRevenue, totalCost, grossProfit, totalVendorCommission, netProfit };
+    return { totalRevenue, totalCost, grossProfit, totalVendorCommission, totalNetProfit };
   };
 
   const handleSubmit = () => {
@@ -323,30 +366,115 @@ const WorkerSalesForm = () => {
           <CardDescription>Choose the vendors to record daily sales for</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {vendors.map((vendor) => (
-              <div key={vendor.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                <Checkbox
-                  id={vendor.id}
-                  checked={selectedVendors.includes(vendor.id)}
-                  onCheckedChange={(checked) => handleVendorSelection(vendor.id, checked as boolean)}
-                  disabled={morningStockLocked}
-                />
-                <div className="flex-1">
-                  <Label htmlFor={vendor.id} className="font-medium cursor-pointer">
-                    {vendor.name}
-                  </Label>
-                  <p className="text-sm text-gray-500">{vendor.commissionRate}% commission</p>
+          <div className="space-y-4">
+            {/* Vendor Dropdown */}
+            <div className="flex items-center gap-2">
+              <Select onValueChange={handleVendorSelection} disabled={morningStockLocked}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select vendors to add" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendors
+                    .filter(vendor => !selectedVendors.includes(vendor.id))
+                    .map((vendor) => (
+                      <SelectItem key={vendor.id} value={vendor.id}>
+                        {vendor.name} ({vendor.commissionRate}% commission)
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              
+              <Button
+                onClick={() => setShowAddVendorForm(!showAddVendorForm)}
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={morningStockLocked}
+              >
+                <UserPlus className="h-4 w-4" />
+                Add New
+              </Button>
+            </div>
+
+            {/* Add New Vendor Form */}
+            {showAddVendorForm && (
+              <Card className="border-dashed">
+                <CardContent className="pt-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="vendor-name">Vendor Name</Label>
+                      <Input
+                        id="vendor-name"
+                        value={newVendorName}
+                        onChange={(e) => setNewVendorName(e.target.value)}
+                        placeholder="Enter vendor name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="commission-rate">Commission Rate (%)</Label>
+                      <Input
+                        id="commission-rate"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={newVendorCommission}
+                        onChange={(e) => setNewVendorCommission(e.target.value)}
+                        placeholder="e.g., 8.5"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleAddNewVendor} className="flex-1">
+                        Add Vendor
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          setShowAddVendorForm(false);
+                          setNewVendorName('');
+                          setNewVendorCommission('');
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Selected Vendors Display */}
+            {selectedVendors.length > 0 && (
+              <div>
+                <Label className="text-sm font-medium">Selected Vendors:</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedVendors.map(vendorId => {
+                    const vendor = vendors.find(v => v.id === vendorId);
+                    return (
+                      <Badge key={vendorId} variant="secondary" className="flex items-center gap-1">
+                        {vendor?.name}
+                        {!morningStockLocked && (
+                          <button
+                            onClick={() => handleVendorSelection(vendorId)}
+                            className="ml-1 text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
+            )}
+
+            {morningStockLocked && (
+              <div className="flex items-center gap-2 text-green-600">
+                <Lock className="h-4 w-4" />
+                <span className="text-sm">Vendor selection locked for this session</span>
+              </div>
+            )}
           </div>
-          {morningStockLocked && (
-            <div className="flex items-center gap-2 mt-4 text-green-600">
-              <Lock className="h-4 w-4" />
-              <span className="text-sm">Vendor selection locked for this session</span>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -558,7 +686,7 @@ const WorkerSalesForm = () => {
                 </div>
                 <div className="flex justify-between text-blue-600">
                   <span>Net Profit:</span>
-                  <span className="font-bold">${overallTotals.netProfit.toFixed(2)}</span>
+                  <span className="font-bold">${overallTotals.totalNetProfit.toFixed(2)}</span>
                 </div>
               </div>
             </div>
