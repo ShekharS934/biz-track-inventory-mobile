@@ -22,7 +22,9 @@ import {
   Plus,
   Minus,
   Sunrise,
-  Sunset
+  Sunset,
+  Lock,
+  CheckCircle
 } from 'lucide-react';
 
 interface VendorInventoryItem {
@@ -53,6 +55,8 @@ const WorkerSalesForm = () => {
   const [selectedVendor, setSelectedVendor] = useState('');
   const [vendorItems, setVendorItems] = useState<VendorInventoryItem[]>([]);
   const [activeTab, setActiveTab] = useState<'morning' | 'evening'>('morning');
+  const [morningStockLocked, setMorningStockLocked] = useState(false);
+  const [vendorItemsTaken, setVendorItemsTaken] = useState<VendorInventoryItem[]>([]);
 
   // Mock data - in real app, this would come from database
   const vendors = [
@@ -118,9 +122,13 @@ const WorkerSalesForm = () => {
     }));
     
     setVendorItems(items);
+    setMorningStockLocked(false);
+    setVendorItemsTaken([]);
   };
 
   const updateQuantityTaken = (itemId: string, quantity: string) => {
+    if (morningStockLocked) return;
+    
     const qty = parseInt(quantity) || 0;
     setVendorItems(prev => prev.map(item => {
       if (item.itemId === itemId) {
@@ -142,6 +150,36 @@ const WorkerSalesForm = () => {
       }
       return item;
     }));
+  };
+
+  const lockMorningStock = () => {
+    const itemsWithQuantity = vendorItems.filter(item => item.quantityTaken > 0);
+    
+    if (itemsWithQuantity.length === 0) {
+      toast({
+        title: "No Items Taken",
+        description: "Please record at least one item before locking morning stock.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setMorningStockLocked(true);
+    setVendorItemsTaken(itemsWithQuantity);
+    setActiveTab('evening');
+    
+    toast({
+      title: "Morning Stock Locked",
+      description: `${itemsWithQuantity.length} items locked. You can now record evening returns.`
+    });
+  };
+
+  // Get items to show in evening (only items that were taken in morning)
+  const getEveningItems = () => {
+    return vendorItemsTaken.map(takenItem => {
+      const currentItem = vendorItems.find(item => item.itemId === takenItem.itemId);
+      return currentItem || takenItem;
+    });
   };
 
   // Calculations
@@ -169,13 +207,10 @@ const WorkerSalesForm = () => {
       return;
     }
 
-    const hasItemsTaken = vendorItems.some(item => item.quantityTaken > 0);
-    const hasItemsReturned = vendorItems.some(item => item.quantityReturned > 0);
-
-    if (!hasItemsTaken) {
+    if (!morningStockLocked) {
       toast({
-        title: "No Items Taken",
-        description: "Please record items taken by the vendor in the morning.",
+        title: "Morning Stock Not Locked",
+        description: "Please lock the morning stock before submitting daily sales.",
         variant: "destructive"
       });
       return;
@@ -184,7 +219,10 @@ const WorkerSalesForm = () => {
     const salesData: DailySalesData = {
       vendorName: vendor?.name || '',
       date: new Date().toISOString().split('T')[0],
-      itemsData: vendorItems.filter(item => item.quantityTaken > 0),
+      itemsData: vendorItemsTaken.map(item => {
+        const currentItem = vendorItems.find(v => v.itemId === item.itemId);
+        return currentItem || item;
+      }),
       totalRevenue,
       totalCost,
       grossProfit,
@@ -202,6 +240,9 @@ const WorkerSalesForm = () => {
     // Reset form
     setSelectedVendor('');
     setVendorItems([]);
+    setMorningStockLocked(false);
+    setVendorItemsTaken([]);
+    setActiveTab('morning');
   };
 
   return (
@@ -226,6 +267,7 @@ const WorkerSalesForm = () => {
                 setSelectedVendor(value);
                 initializeVendorItems(value);
               }}
+              disabled={morningStockLocked}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a vendor..." />
@@ -238,6 +280,12 @@ const WorkerSalesForm = () => {
                 ))}
               </SelectContent>
             </Select>
+            {morningStockLocked && (
+              <div className="flex items-center gap-2 mt-2 text-green-600">
+                <Lock className="h-4 w-4" />
+                <span className="text-sm">Vendor locked for this session</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -249,14 +297,17 @@ const WorkerSalesForm = () => {
             variant={activeTab === 'morning' ? 'default' : 'outline'}
             onClick={() => setActiveTab('morning')}
             className="flex items-center gap-2"
+            disabled={morningStockLocked}
           >
             <Sunrise className="h-4 w-4" />
             Morning - Items Taken
+            {morningStockLocked && <CheckCircle className="h-4 w-4 text-green-500" />}
           </Button>
           <Button
             variant={activeTab === 'evening' ? 'default' : 'outline'}
             onClick={() => setActiveTab('evening')}
             className="flex items-center gap-2"
+            disabled={!morningStockLocked}
           >
             <Sunset className="h-4 w-4" />
             Evening - Items Returned
@@ -268,11 +319,26 @@ const WorkerSalesForm = () => {
       {selectedVendor && activeTab === 'morning' && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sunrise className="h-5 w-5 text-orange-500" />
-              Morning - Record Items Taken
-            </CardTitle>
-            <CardDescription>Enter how many ice creams the vendor took to sell today</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Sunrise className="h-5 w-5 text-orange-500" />
+                  Morning - Record Items Taken
+                  {morningStockLocked && <Badge variant="secondary" className="bg-green-100 text-green-700">Locked</Badge>}
+                </CardTitle>
+                <CardDescription>Enter how many ice creams the vendor took to sell today</CardDescription>
+              </div>
+              {!morningStockLocked && (
+                <Button 
+                  onClick={lockMorningStock}
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={vendorItems.every(item => item.quantityTaken === 0)}
+                >
+                  <Lock className="h-4 w-4 mr-2" />
+                  Lock Morning Stock
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -293,11 +359,23 @@ const WorkerSalesForm = () => {
                       onChange={(e) => updateQuantityTaken(item.itemId, e.target.value)}
                       className="w-20"
                       placeholder="0"
+                      disabled={morningStockLocked}
                     />
                   </div>
                 </div>
               ))}
             </div>
+            {morningStockLocked && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-green-700">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="font-medium">Morning stock has been locked</span>
+                </div>
+                <p className="text-sm text-green-600 mt-1">
+                  You can now proceed to evening returns for the items taken.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -310,11 +388,13 @@ const WorkerSalesForm = () => {
               <Sunset className="h-5 w-5 text-purple-500" />
               Evening - Record Items Returned
             </CardTitle>
-            <CardDescription>Enter how many ice creams came back unsold</CardDescription>
+            <CardDescription>
+              Enter how many ice creams came back unsold (showing only items taken in morning)
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {vendorItems.map((item) => (
+              {getEveningItems().map((item) => (
                 <div key={item.itemId} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
                     <span className="font-medium">{item.itemName}</span>
@@ -336,13 +416,20 @@ const WorkerSalesForm = () => {
                   </div>
                 </div>
               ))}
+              {getEveningItems().length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                  <p>No items were taken in the morning</p>
+                  <p className="text-sm">Please record morning stock first</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Profit Calculation */}
-      {selectedVendor && vendorItems.some(item => item.quantitySold > 0) && (
+      {selectedVendor && morningStockLocked && vendorItems.some(item => item.quantitySold > 0) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -382,7 +469,7 @@ const WorkerSalesForm = () => {
             <div className="mt-4 pt-4 border-t">
               <h4 className="font-medium mb-2">Items Sold Summary:</h4>
               <div className="space-y-1">
-                {vendorItems.filter(item => item.quantitySold > 0).map(item => (
+                {getEveningItems().filter(item => item.quantitySold > 0).map(item => (
                   <div key={item.itemId} className="flex justify-between text-sm">
                     <span>{item.itemName}:</span>
                     <span>{item.quantitySold} units (${(item.quantitySold * item.unitPrice).toFixed(2)})</span>
@@ -398,7 +485,7 @@ const WorkerSalesForm = () => {
       <Button 
         onClick={handleSubmit} 
         className="w-full"
-        disabled={!selectedVendor || vendorItems.length === 0}
+        disabled={!selectedVendor || !morningStockLocked || vendorItems.length === 0}
       >
         Record Daily Sales
       </Button>
